@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>MF KILL — Vol. 1</title>
+<meta name="description" content="MF KILL — Volume 1. Continua la lettura del fumetto dopo esserti iscritto.">
+<link rel="canonical" href="https://mfkill.com/comic/vol1/">
+<!-- Non ancora da promuovere/condividere di per sé: si entra qui solo
+     proseguendo dal Vol. 0 dopo l'iscrizione — niente indicizzazione
+     finché non è la sezione "principale" da linkare. -->
+<meta name="robots" content="noindex">
+
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="../favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<meta name="theme-color" content="#0A0A0F">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=IBM+Plex+Mono:wght@400;500;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../reader.css">
+</head>
+<body>
+<noscript>
+  <div style="max-width:32rem;margin:4rem auto;padding:1.5rem;font-family:sans-serif;color:#E7E6EA;background:#111119;border:1px solid #2B3050;text-align:center;">
+    MF KILL è un fumetto interattivo e richiede JavaScript per essere letto. Attivalo dalle impostazioni del browser per continuare.
+  </div>
+</noscript>
+
+<div class="top-bar">
+  <a class="brand-block" href="../../">
+    <span class="wordmark">MF KILL</span>
+    <span class="category">comic</span>
+  </a>
+  <nav class="episode-nav" id="episode-nav"></nav>
+  <button class="sound-toggle-btn" id="sound-toggle-btn" aria-label="Attiva o disattiva l'audio" title="Audio">♪</button>
+  <div class="volume-tag" id="volume-tag"></div>
+</div>
+
+<button class="arrow-btn prev" id="btn-prev" aria-label="Pagina precedente">‹</button>
+<div class="reader-scroll" id="reader-scroll"></div>
+<button class="arrow-btn next" id="btn-next" aria-label="Pagina successiva">›</button>
+
+<div class="reader-hud">
+  <div class="counter"><span class="current" id="hud-current">1</span> / <span id="hud-total">12</span></div>
+  <div class="progress-track"><div class="progress-fill" id="hud-fill"></div></div>
+</div>
+
+<script src="../manifest.js"></script>
+<script src="../gate.js"></script>
+<script>
+  // Vedi il commento in vol0/index.html: stessa logica, calcolata sugli
+  // episodi invece che sui volumi, con eventuale copertina saltata.
+  const ENTRY_PAGE = (function () {
+    let cursor = 1;
+    for (const ep of EPISODES) {
+      if (ep.volume === "vol1") return cursor + (ep.coverPages || 0);
+      cursor += ep.pages;
+    }
+    return 1;
+  })();
+</script>
+<script src="../reader.js"></script>
+
+<!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "44621508a9294d1ea696bdd8168d1451"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>
