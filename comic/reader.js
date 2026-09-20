@@ -464,7 +464,7 @@ const AUDIO_TARGET_VOLUME = 0.38;
 const AUDIO_FADE_MS = 500;
 
 let soundOn = false;
-let currentAudioTrack = null; // percorso (relativo) attualmente caricato
+let currentAudioTrack = null; // percorso della traccia che "dovrebbe" suonare in base alla pagina (vedi loadedAudioTrack più sotto)
 let lastAudioEpisodeId = null;
 let fadeRAF = null;
 
@@ -504,6 +504,15 @@ function prefetchNeighborTracks(epId) {
   });
 }
 
+// currentAudioTrack: quale traccia "dovrebbe" suonare in base alla pagina
+// attuale (aggiornata sempre, anche muta). loadedAudioTrack: quale traccia è
+// REALMENTE caricata dentro audioEl in questo momento (aggiornata solo
+// quando si tocca audioEl.src per davvero). Sono due cose diverse: se si
+// silenzia l'audio e poi si cambia episodio scorrendo, la prima cambia ma
+// la seconda no — servono entrambe per capire, alla riattivazione, se
+// basta riprendere quella già caricata o se bisogna caricarne una nuova.
+let loadedAudioTrack = null;
+
 function applyTrackForEpisode(epId) {
   const ep = EPISODES.find(e => e.id === epId);
   const track = ep && ep.audio ? "../" + ep.audio : null;
@@ -518,6 +527,7 @@ function applyTrackForEpisode(epId) {
     currentAudioTrack = track;
     if (!track) { audioEl.pause(); return; }
     audioEl.src = track;
+    loadedAudioTrack = track;
     audioEl.currentTime = 0;
     audioEl.play().catch(() => { /* riprovare al prossimo tap è inutile forzarlo */ });
     fadeAudio(AUDIO_TARGET_VOLUME, AUDIO_FADE_MS);
@@ -544,11 +554,13 @@ function turnSoundOn() {
 
   prefetchNeighborTracks(entry.episodeId);
 
-  if (track && track === currentAudioTrack && audioEl.src) {
-    // stessa traccia già caricata (solo messa in pausa da un OFF precedente)
+  if (track && track === loadedAudioTrack) {
+    // è davvero la traccia già caricata in audioEl (solo messa in pausa da
+    // un OFF precedente, e non si è cambiato episodio nel frattempo)
     audioEl.play().then(() => fadeAudio(AUDIO_TARGET_VOLUME, AUDIO_FADE_MS)).catch(() => {});
   } else if (track) {
     audioEl.src = track;
+    loadedAudioTrack = track;
     audioEl.currentTime = 0;
     audioEl.play().then(() => fadeAudio(AUDIO_TARGET_VOLUME, AUDIO_FADE_MS)).catch(() => {});
     currentAudioTrack = track;
