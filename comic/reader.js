@@ -430,12 +430,24 @@ function unlockReading() {
 // episodio con una traccia diversa — un episodio senza "audio" lascia
 // semplicemente il sottofondo in silenzio finché non se ne raggiunge uno
 // che ce l'ha. "OFF" lascia tutto muto per l'intera lettura.
+// Ricorda la scelta ON/OFF fatta una volta, così a ogni ricarica o cambio
+// pagina (es. Vol.0 → Vol.1, ognuno un documento a sé) non si richiede più:
+// si applica subito la preferenza salvata, senza mostrare il prompt.
+const SOUND_PREF_KEY = "mfkill_sound_pref";
+function getSoundPref() {
+  try { return localStorage.getItem(SOUND_PREF_KEY); } catch (e) { return null; }
+}
+function setSoundPref(v) {
+  try { localStorage.setItem(SOUND_PREF_KEY, v); } catch (e) { /* va bene lo stesso */ }
+}
+const savedSoundPref = getSoundPref();
+
 const soundPromptEl = document.createElement("div");
 soundPromptEl.className = "sound-prompt";
 soundPromptEl.innerHTML =
   '<button type="button" class="sound-choice on" aria-label="Attiva la colonna sonora">♪<span>AUDIO ON</span></button>' +
   '<button type="button" class="sound-choice off" aria-label="Lascia la lettura senza audio">✕<span>AUDIO OFF</span></button>';
-document.body.appendChild(soundPromptEl);
+if (!savedSoundPref) document.body.appendChild(soundPromptEl); // solo se non ha già scelto in passato
 const soundOnBtn = soundPromptEl.querySelector(".on");
 const soundOffBtn = soundPromptEl.querySelector(".off");
 
@@ -554,20 +566,31 @@ function turnSoundOff() {
 
 soundOnBtn.addEventListener("click", () => {
   turnSoundOn();
+  setSoundPref("on");
   dismissSoundPrompt();
 });
 
 soundOffBtn.addEventListener("click", () => {
   turnSoundOff();
+  setSoundPref("off");
   dismissSoundPrompt();
 });
 
 if (soundToggleBtn) {
   soundToggleBtn.addEventListener("click", () => {
     if (soundOn) { turnSoundOff(); } else { turnSoundOn(); }
+    setSoundPref(soundOn ? "on" : "off");
     dismissSoundPrompt(); // se non era ancora stata chiusa, la scelta è ormai fatta
   });
   updateSoundToggleBtn(); // stato iniziale: muto, finché non si sceglie
+}
+
+// Se la preferenza era già salvata, applicala subito senza mostrare il
+// prompt (il prompt non è stato nemmeno inserito nella pagina, vedi sopra).
+if (savedSoundPref === "on") {
+  turnSoundOn();
+} else if (savedSoundPref === "off") {
+  updateSoundToggleBtn(); // resta muto, ma l'icona riflette comunque lo stato
 }
 
 setupVolumeMenu();
