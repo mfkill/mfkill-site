@@ -619,6 +619,12 @@ setupVolumeMenu();
 if (savedSoundPref === "on") {
   soundOn = true;
   updateSoundToggleBtn();
+  // Pre-scarica già ORA (in parallelo alla lettura) la traccia
+  // dell'episodio di apertura: sappiamo già che questo visitatore vuole
+  // l'audio, quindi non serve aspettare il primo gesto per iniziare il
+  // download — così, quando arriva il tap/scroll che sblocca la
+  // riproduzione, il file è già in cache e parte quasi subito.
+  if (currentAudioTrack) prefetchTrack(currentAudioTrack);
   const startOnFirstGesture = () => { turnSoundOn(); };
   ["pointerdown", "touchstart", "wheel", "keydown"].forEach(evt =>
     document.addEventListener(evt, startOnFirstGesture, { once: true, passive: true })
