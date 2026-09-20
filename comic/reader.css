@@ -374,20 +374,17 @@ body {
   transition: width 0.15s ease;
 }
 
-/* Contatore pagine + tastino audio: gruppo affiancato, in basso a destra,
-   staccato dalla barra di avanzamento (che resta centrata) — abbastanza
-   distanziati tra loro da respirare, non stipati uno addosso all'altro. */
+.counter { min-width: 5.5rem; text-align: center; }
+.counter .current { color: var(--cobalt-bright); }
+
+/* Tastino audio: isolato in basso a destra, staccato dal contatore/barra
+   di avanzamento che restano centrati. */
 .hud-corner {
   position: absolute;
   right: 1.5rem;
   bottom: calc(1rem + env(safe-area-inset-bottom));
-  display: flex;
-  align-items: center;
-  gap: 1.1rem;
   pointer-events: auto;
 }
-.counter { min-width: 5.5rem; text-align: center; }
-.counter .current { color: var(--cobalt-bright); }
 
 /* ---------- Scelta colonna sonora: due tasti (ON/OFF) affiancati, grandi,
    all'altezza del pollice (comodo da toccare tenendo il telefono con una
