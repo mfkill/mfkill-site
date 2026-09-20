@@ -473,9 +473,30 @@ function fadeAudio(to, ms, onDone) {
   fadeRAF = requestAnimationFrame(step);
 }
 
+// Pre-scarica (senza riprodurre) le tracce degli episodi adiacenti mentre
+// l'utente legge quello corrente, così quando la pagina attraversa il
+// confine tra un episodio e l'altro il file è già in cache del browser
+// (vedi _headers: /comic/audio/* è cache immutabile di 1 anno) e il cambio
+// traccia è istantaneo invece di aspettare il download in quel momento.
+const prefetchedTracks = new Set();
+function prefetchTrack(track) {
+  if (!track || prefetchedTracks.has(track)) return;
+  prefetchedTracks.add(track);
+  fetch(track).catch(() => {});
+}
+function prefetchNeighborTracks(epId) {
+  if (!soundOn) return; // non scaricare audio extra se l'utente non l'ha attivato
+  [epId - 1, epId + 1].forEach(id => {
+    const ep = EPISODES.find(e => e.id === id);
+    if (ep && ep.audio) prefetchTrack("../" + ep.audio);
+  });
+}
+
 function applyTrackForEpisode(epId) {
   const ep = EPISODES.find(e => e.id === epId);
   const track = ep && ep.audio ? "../" + ep.audio : null;
+
+  prefetchNeighborTracks(epId);
 
   if (track === currentAudioTrack) return; // stesso episodio/stessa traccia, niente da fare
 
@@ -508,6 +529,8 @@ function turnSoundOn() {
   const entry = entryFor(currentPage);
   const ep = EPISODES.find(e => e.id === entry.episodeId);
   const track = ep && ep.audio ? "../" + ep.audio : null;
+
+  prefetchNeighborTracks(entry.episodeId);
 
   if (track && track === currentAudioTrack && audioEl.src) {
     // stessa traccia già caricata (solo messa in pausa da un OFF precedente)
