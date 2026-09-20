@@ -585,14 +585,6 @@ if (soundToggleBtn) {
   updateSoundToggleBtn(); // stato iniziale: muto, finché non si sceglie
 }
 
-// Se la preferenza era già salvata, applicala subito senza mostrare il
-// prompt (il prompt non è stato nemmeno inserito nella pagina, vedi sopra).
-if (savedSoundPref === "on") {
-  turnSoundOn();
-} else if (savedSoundPref === "off") {
-  updateSoundToggleBtn(); // resta muto, ma l'icona riflette comunque lo stato
-}
-
 setupVolumeMenu();
 
 // ---------- Init: apre sulla pagina indicata nell'URL, o su ENTRY_PAGE ----------
@@ -615,3 +607,22 @@ setupVolumeMenu();
     scrollEl.scrollTo({ left: slides[startPage - 1].offsetLeft, behavior: "auto" });
   });
 })();
+
+// Se la preferenza era già salvata su "ON", applicala senza mostrare il
+// prompt (il prompt non è stato nemmeno inserito nella pagina, vedi sopra) —
+// MA i browser bloccano l'avvio dell'audio se non c'è un gesto esplicito
+// dell'utente nel mezzo (tap, click, scroll...): un semplice caricamento di
+// pagina non basta, e forzarlo qui fallirebbe in silenzio. Quindi l'icona
+// riflette subito lo stato "acceso", e la riproduzione vera e propria parte
+// al primo gesto sulla pagina — che in pratica coincide con l'inizio della
+// lettura (il primo scroll/tap per girare pagina).
+if (savedSoundPref === "on") {
+  soundOn = true;
+  updateSoundToggleBtn();
+  const startOnFirstGesture = () => { turnSoundOn(); };
+  ["pointerdown", "touchstart", "wheel", "keydown"].forEach(evt =>
+    document.addEventListener(evt, startOnFirstGesture, { once: true, passive: true })
+  );
+} else if (savedSoundPref === "off") {
+  updateSoundToggleBtn(); // resta muto, ma l'icona riflette comunque lo stato
+}
