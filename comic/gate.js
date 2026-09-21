@@ -4,20 +4,15 @@
 // in più (un semplice link), non sblocca nulla da solo — solo l'email lo
 // fa.
 //
-// COME COLLEGARE UN SERVIZIO EMAIL VERO (consigliato: Buttondown, gratis
-// fino a 1000 iscritti, manda da solo una mail di benvenuto senza dover
-// scrivere codice):
-//   1. Crea un account gratuito su https://buttondown.email
-//   2. Nelle impostazioni del tuo account trovi il tuo "username"
-//      (es. se il tuo profilo è buttondown.email/mfkill, lo username è "mfkill")
-//   3. Sostituisci qui sotto formAction con:
-//      "https://buttondown.email/api/emails/embed-subscribe/IL-TUO-USERNAME"
-//   4. In Buttondown, sezione "Settings → Welcome email", scrivi il testo
-//      della mail automatica che ricevono i nuovi iscritti (nessun codice,
-//      si fa dalla loro interfaccia)
+// SERVIZIO EMAIL COLLEGATO: Buttondown (account di Mario, username
+// "mfkill" — verificato in Settings → Basics → Username su
+// buttondown.com). Le iscrizioni arrivano davvero: si vedono nella
+// sezione "Subscribers" del suo account Buttondown.
 //
-// Finché formAction resta il segnaposto qui sotto, il gate funziona lo
-// stesso (sblocca la lettura sul sito) ma non manda vere email a nessuno.
+// Per cambiare il testo che ricevono i nuovi iscritti: su buttondown.com,
+// sezione "Settings → Welcome email" (nessun codice, si fa dalla loro
+// interfaccia).
+//
 // Metti formAction a stringa vuota "" per disattivare del tutto il gate
 // (tutto libero, comodo in fase di test).
 
@@ -27,7 +22,7 @@ const GATE_CONFIG = {
   // la mail per continuare nell'Episodio 7 (primo del Vol.1).
   triggerFromEpisodeId: 7,
 
-  formAction: "https://buttondown.email/api/emails/embed-subscribe/mfkill",
+  formAction: "https://buttondown.com/api/emails/embed-subscribe/mfkill",
 
   title: "Hai finito il Vol. 0",
   body: "Sblocca subito il resto del fumetto con la tua email. Riceverai una mail ogni volta che uscirà un nuovo episodio di MF KILL.",

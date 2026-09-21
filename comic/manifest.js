@@ -29,6 +29,6 @@ const EPISODES = [
   { id: 3, label: "EP. 3", volume: "vol0", pages: 10, audio: "audio/ep3.mp3" },
   { id: 4, label: "EP. 4", volume: "vol0", pages: 8, audio: "audio/ep4.mp3" },
   { id: 5, label: "EP. 5", volume: "vol0", pages: 6, audio: "audio/ep5.mp3" },
-  { id: 7, label: "EP. 7", volume: "vol1", pages: 12 },
+  { id: 7, label: "EP. 7", volume: "vol1", pages: 1 }, // solo tavola "coming soon", in attesa delle tavole vere
   // { id: 8, label: "EP. 8", volume: "vol1", pages: 8 },
 ];
