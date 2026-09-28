@@ -9,6 +9,12 @@
 // buttondown.com). Le iscrizioni arrivano davvero: si vedono nella
 // sezione "Subscribers" del suo account Buttondown.
 //
+// L'invio del modulo apre una scheda del browser a parte verso
+// Buttondown (richiesto da Buttondown stesso: un invio "nascosto" via
+// iframe può perdere silenziosamente l'iscrizione se serve un CAPTCHA o
+// la mail non è valida — vedi reader.js, buildGate()). Sul sito la
+// tendina si chiude comunque subito, senza aspettare quella scheda.
+//
 // Per cambiare il testo che ricevono i nuovi iscritti: su buttondown.com,
 // sezione "Settings → Welcome email" (nessun codice, si fa dalla loro
 // interfaccia).

@@ -343,9 +343,10 @@ function buildGate() {
       (gateEpisode ? '<div class="gate-eyebrow">Vol. 0 completato</div>' : '') +
       '<h2 class="gate-title" id="gate-title">' + GATE_CONFIG.title + '</h2>' +
       '<p class="gate-body">' + GATE_CONFIG.body + '</p>' +
-      '<form class="gate-form" id="gate-form" target="gate-hidden-frame">' +
+      '<form class="gate-form" id="gate-form" target="_blank" rel="noopener">' +
         '<label class="sr-only" for="gate-email">Email</label>' +
         '<input type="email" name="email" id="gate-email" required placeholder="' + GATE_CONFIG.placeholder + '">' +
+        '<input type="hidden" name="embed" value="1">' +
         '<button type="submit">' + GATE_CONFIG.buttonLabel + '</button>' +
       '</form>' +
       '<p class="gate-success" id="gate-success">Fatto — ti avviseremo.</p>' +
@@ -363,15 +364,6 @@ function buildGate() {
     '</div>';
   document.body.appendChild(wrap);
 
-  // iframe nascosto: il form invia la mail al servizio esterno senza
-  // ricaricare o abbandonare la pagina (funziona con qualunque servizio
-  // di email marketing che offra un URL di iscrizione via form)
-  const iframe = document.createElement("iframe");
-  iframe.name = "gate-hidden-frame";
-  iframe.style.display = "none";
-  iframe.title = "invio modulo iscrizione";
-  document.body.appendChild(iframe);
-
   gateOverlay = wrap;
   gateForm = document.getElementById("gate-form");
   gateEmailInput = document.getElementById("gate-email");
@@ -387,10 +379,12 @@ function buildGate() {
     // Disabilita subito il pulsante: un doppio tap/click prima che il form
     // sparisca (riga sotto) non deve poter inviare due iscrizioni.
     gateForm.querySelector("button[type=submit]").disabled = true;
-    // Sblocco immediato lato sito, senza aspettare risposta dal servizio
-    // email (che comunque non è leggibile da qui, l'invio va all'iframe
-    // nascosto): il pulsante Instagram qui sopra resta invece un semplice
-    // link, non sblocca nulla — solo l'iscrizione lo fa.
+    // L'invio vero e proprio va a Buttondown in una scheda a parte
+    // (target="_blank": Buttondown lo richiede esplicitamente — un invio
+    // "nascosto" via iframe può fallire in silenzio se serve un CAPTCHA o
+    // la mail non è valida). Sul sito, intanto, si sblocca subito senza
+    // aspettare risposta: il pulsante Instagram qui sopra resta invece un
+    // semplice link, non sblocca nulla — solo l'iscrizione lo fa.
     unlockReading();
     gateForm.style.display = "none";
     gateSuccessEl.classList.add("visible");
