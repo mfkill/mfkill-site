@@ -591,6 +591,43 @@ if (soundToggleBtn) {
   updateSoundToggleBtn(); // stato iniziale: muto, finché non si sceglie
 }
 
+// ---------- Tastino "condividi", di fianco a quello audio: sul telefono
+// apre la scheda di condivisione nativa (l'utente sceglie WhatsApp,
+// Messaggi, Telegram, Mail, ecc.); se il browser non la supporta (quasi
+// sempre il caso su desktop) apre direttamente una chat WhatsApp Web/
+// Desktop già pronta con il messaggio; se anche questo fallisce, copia
+// il link negli appunti come ultima spiaggia. ----------
+const shareBtn = document.getElementById("share-btn");
+const SHARE_URL = "https://mfkill.com";
+const SHARE_TEXT = "MF KILL — leggi gratis il fumetto:";
+
+function flashShareBtn(symbol) {
+  if (!shareBtn) return;
+  const original = shareBtn.textContent;
+  shareBtn.textContent = symbol;
+  setTimeout(() => { shareBtn.textContent = original; }, 1500);
+}
+
+if (shareBtn) {
+  shareBtn.addEventListener("click", async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "MF KILL", text: SHARE_TEXT, url: SHARE_URL });
+        return;
+      } catch (err) {
+        if (err && err.name === "AbortError") return; // l'utente ha chiuso la scheda di condivisione, nessun fallback
+      }
+    }
+    try {
+      window.open("https://wa.me/?text=" + encodeURIComponent(SHARE_TEXT + " " + SHARE_URL), "_blank", "noopener");
+    } catch (err) {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(SHARE_URL).then(() => flashShareBtn("✓")).catch(() => {});
+      }
+    }
+  });
+}
+
 setupVolumeMenu();
 
 // ---------- Init: apre sulla pagina indicata nell'URL, o su ENTRY_PAGE ----------
