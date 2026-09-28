@@ -258,7 +258,7 @@ function updateHud(page) {
   // listener più sotto
   if (gateActive && page === maxFreePage && !gateAutoShown) {
     gateAutoShown = true;
-    setTimeout(showGate, 3000);
+    setTimeout(showGate, 5000);
   }
 }
 
