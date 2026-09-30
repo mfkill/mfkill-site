@@ -248,7 +248,10 @@ function updateHud(page) {
   document.getElementById("btn-prev").disabled = page <= 1;
   document.getElementById("btn-next").disabled = page >= TOTAL_PAGES;
 
-  history.replaceState(null, "", "#" + page);
+  // (niente più history.replaceState qui: vedi il commento in fondo al
+  // file, sopra init(), sul perché la pagina corrente NON va più scritta
+  // nell'URL — restava "incollata" nella barra degli indirizzi/cronologia
+  // e faceva ripartire le visite successive da lì invece che dall'inizio)
 
   // se sei arrivato sull'ultima pagina libera (fine Vol.0), la tendina si
   // presenta da sola dopo una pausa (così c'è il tempo di guardarsi
@@ -308,16 +311,29 @@ document.addEventListener("keydown", (e) => {
 });
 
 // ---------- Rilevamento della pagina attiva durante lo swipe ----------
+// Durante uno swipe veloce può capitare che DUE tavole superino insieme la
+// soglia nello stesso "batch" di IntersectionObserver (quella che esce e
+// quella che entra) — prendendo semplicemente l'ultima della lista si
+// rischiava di impostare la pagina sbagliata (quella che sta uscendo, se
+// il browser la riporta per seconda), con l'effetto di "tornare indietro"
+// per un istante e dare l'impressione di vedere due volte la stessa
+// tavola. Ora si sceglie sempre quella con la percentuale di visibilità
+// più alta nel batch, indipendentemente dall'ordine in cui il browser le
+// riporta.
 const observer = new IntersectionObserver((entries) => {
+  let best = null;
   entries.forEach(entry => {
     if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
-      const page = parseInt(entry.target.dataset.page, 10);
-      if (page !== currentPage) {
-        currentPage = page;
-        updateHud(currentPage);
-      }
+      if (!best || entry.intersectionRatio > best.intersectionRatio) best = entry;
     }
   });
+  if (best) {
+    const page = parseInt(best.target.dataset.page, 10);
+    if (page !== currentPage) {
+      currentPage = page;
+      updateHud(currentPage);
+    }
+  }
 }, { root: scrollEl, threshold: [0.6] });
 
 // costruisce le pagine iniziali disponibili (tutte, se il gate non è
@@ -630,12 +646,18 @@ if (shareBtn) {
 
 setupVolumeMenu();
 
-// ---------- Init: apre sulla pagina indicata nell'URL, o su ENTRY_PAGE ----------
+// ---------- Init: apre sempre su ENTRY_PAGE ----------
+// In passato la pagina raggiunta veniva scritta nell'URL (#N) tramite
+// history.replaceState, con l'idea di poter riprendere da lì con un
+// refresh. In pratica quel numero restava "incollato" nella barra degli
+// indirizzi (e quindi nella cronologia/negli autocompletamenti del
+// browser): riaprendo il sito più tardi — anche da un link o QR code che
+// punta alla pagina "pulita" — capitava di ripartire da lì invece che
+// dall'inizio dell'Ep.1. Ora l'apertura è sempre e solo ENTRY_PAGE: niente
+// più lettura né scrittura dell'hash nell'URL.
 (function init() {
-  const hash = location.hash.replace("#", "");
-  const n = parseInt(hash, 10);
   const fallback = (typeof ENTRY_PAGE !== "undefined") ? ENTRY_PAGE : 1;
-  let startPage = (!isNaN(n) && n >= 1 && n <= TOTAL_PAGES) ? n : fallback;
+  let startPage = fallback;
 
   // non si può arrivare via link diretto oltre il gate: se non ancora
   // sbloccato, il punto di apertura più avanzato possibile è l'ultima
@@ -650,6 +672,26 @@ setupVolumeMenu();
     scrollEl.scrollTo({ left: slides[startPage - 1].offsetLeft, behavior: "auto" });
   });
 })();
+
+// ---------- Riallineamento dopo resize/rotazione ----------
+// La striscia scorre a pixel (scrollLeft), ma le pagine sono larghe in %
+// (flex 0 0 100%): se le dimensioni della viewport cambiano MENTRE sei
+// fermo su una pagina — barra indirizzi del telefono che compare/scompare
+// durante lo scroll, rotazione dello schermo, tastiera che si apre per la
+// tendina email — lo scrollLeft resta quello di prima, ma non punta più
+// esattamente all'inizio della pagina corrente: il risultato è vedere per
+// un istante un pezzo della tavola precedente o successiva insieme a
+// quella attuale (a volte scambiato per "la stessa pagina due volte").
+// Al resize, si riallinea subito (senza animazione) alla pagina che stavi
+// leggendo.
+let resizeRAF = null;
+window.addEventListener("resize", () => {
+  if (resizeRAF) cancelAnimationFrame(resizeRAF);
+  resizeRAF = requestAnimationFrame(() => {
+    const slide = slides[currentPage - 1];
+    if (slide) scrollEl.scrollTo({ left: slide.offsetLeft, behavior: "auto" });
+  });
+});
 
 // Se la preferenza era già salvata su "ON", applicala senza mostrare il
 // prompt (il prompt non è stato nemmeno inserito nella pagina, vedi sopra) —

@@ -233,6 +233,12 @@ body {
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  /* Evita il "rimbalzo" (rubber-band) oltre la prima/ultima tavola e che
+     un trascinamento verticale accidentale interferisca con lo scroll
+     orizzontale: entrambi potevano far intravedere per un istante la
+     tavola adiacente, dando l'impressione di un doppione. */
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
 }
 .reader-scroll::-webkit-scrollbar { display: none; }
 
@@ -244,6 +250,12 @@ body {
   align-items: center;
   justify-content: center;
   padding: 5.5rem 1.1rem 4.75rem;
+  /* Con episodi lunghi ci sono decine di tavole tutte nel DOM insieme:
+     quelle lontane dallo schermo non vanno né disegnate né tenute pronte
+     per il layout finché non ci si avvicina — alleggerisce lo scroll su
+     telefoni meno potenti senza cambiare nulla a schermo. */
+  content-visibility: auto;
+  contain-intrinsic-size: 100vw 100vh;
 }
 
 /* Le tavole sono tutte 1400×1980px (stesso rapporto): fissando questo
