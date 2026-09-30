@@ -227,6 +227,8 @@ function preloadAround(page) {
 }
 
 function updateHud(page) {
+  if (typeof resetZoom === "function") resetZoom(); // ogni tavola nuova riparte sempre a zoom 1×
+
   const entry = entryFor(page);
   const volTotal = volumePageCount(entry.volume);
 
@@ -410,6 +412,7 @@ function buildGate() {
 
 function showGate() {
   if (typeof setImmersive === "function") setImmersive(false); // la tendina va vista con l'interfaccia normale attorno
+  if (typeof resetZoom === "function") resetZoom();
   if (!gateOverlay) buildGate();
   gateOverlay.classList.add("visible");
   setTimeout(() => gateEmailInput && gateEmailInput.focus(), 300);
@@ -657,29 +660,192 @@ let immersive = false;
 function setImmersive(on) {
   immersive = on;
   document.body.classList.toggle("immersive", immersive);
+  // Nascondere/mostrare barra e HUD non cambia le dimensioni della
+  // finestra, ma su mobile può far comparire/sparire la barra degli
+  // indirizzi del browser (l'altezza "visibile" cambia), e con essa la
+  // larghezza calcolata della tavola (100dvh nel CSS) — riallineandosi
+  // subito alla pagina corrente si evita di restare a metà tra una
+  // tavola e l'altra.
+  requestAnimationFrame(() => {
+    const slide = slides[currentPage - 1];
+    if (slide) scrollEl.scrollTo({ left: slide.offsetLeft, behavior: "auto" });
+  });
 }
 function toggleImmersive() { setImmersive(!immersive); }
 
-let tapStartX = null, tapStartY = null, tapStartTime = 0;
-const TAP_MOVE_TOLERANCE = 10; // px — oltre, è uno swipe, non un tap
-const TAP_MAX_DURATION = 500;  // ms — oltre, è una pressione prolungata, non un tap
+// ---------- Zoom sulla tavola (pizzico con due dita o doppio tap, come
+// nell'app Foto) + il tap per lo schermo intero qui sopra: un'unica
+// gestione dei puntatori distingue i gesti sulla tavola VISIBILE in quel
+// momento (currentPage):
+// - un dito fermo (tap) -> schermo intero (con un piccolo ritardo, per
+//   lasciare il tempo a un eventuale secondo tap di arrivare)
+// - due tap ravvicinati nello stesso punto -> zoom avanti/indietro
+// - due dita che si allontanano/avvicinano -> zoom continuo (pinch)
+// - un dito che trascina QUANDO la tavola è già ingrandita -> sposta
+//   l'inquadratura invece di cambiare pagina (lo swipe orizzontale per
+//   cambiare pagina resta sospeso finché non si torna a zoom 1×)
+const ZOOM_MAX = 4;
+const ZOOM_DOUBLE_TAP = 2.5;
+const TAP_MOVE_TOLERANCE = 10;   // px — oltre, è uno swipe/trascinamento, non un tap
+const TAP_MAX_DURATION = 500;    // ms — oltre, è una pressione prolungata, non un tap
+const DOUBLE_TAP_WINDOW = 300;   // ms tra un tap e l'altro per contare come doppio tap
+
+let zoomScale = 1, zoomTx = 0, zoomTy = 0;
+let zoomedSlide = null; // la slide che porta l'eventuale zoom applicato ora
+const activePointers = new Map(); // pointerId -> {x, y}
+let gestureMode = null;  // null | "pinch" | "pan"
+let pinchStartDist = 0, pinchStartScale = 1;
+let panStartX = 0, panStartY = 0, panOriginTx = 0, panOriginTy = 0;
+let tapCandidate = null; // {x, y, time} del pointerdown in corso, per riconoscere un tap
+let singleTapTimer = null;
+let lastTapTime = 0, lastTapX = 0, lastTapY = 0;
+
+function currentZoomImg() {
+  const slide = slides[currentPage - 1];
+  return slide ? slide.querySelector(".page-card img") : null;
+}
+function currentZoomCard() {
+  const slide = slides[currentPage - 1];
+  return slide ? slide.querySelector(".page-card") : null;
+}
+function pointerDist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+
+function applyZoom() {
+  const img = currentZoomImg();
+  const slide = slides[currentPage - 1];
+  if (!img || !slide) return;
+  img.style.transform = zoomScale === 1 ? "" : "translate(" + zoomTx + "px," + zoomTy + "px) scale(" + zoomScale + ")";
+  const zoomed = zoomScale > 1.01;
+  slide.classList.toggle("zoomed", zoomed);
+  scrollEl.classList.toggle("zoom-active", zoomed); // sospende lo swipe orizzontale (vedi CSS)
+  zoomedSlide = zoomed ? slide : null;
+}
+
+// L'immagine ingrandita non può essere trascinata oltre i propri bordi
+// (come nell'app Foto): il trascinamento massimo è metà dell'eccedenza
+// creata dallo zoom, dato che scala attorno al proprio centro.
+function clampPan() {
+  const card = currentZoomCard();
+  if (!card) return;
+  const maxTx = Math.max(0, (card.offsetWidth * (zoomScale - 1)) / 2);
+  const maxTy = Math.max(0, (card.offsetHeight * (zoomScale - 1)) / 2);
+  zoomTx = Math.max(-maxTx, Math.min(maxTx, zoomTx));
+  zoomTy = Math.max(-maxTy, Math.min(maxTy, zoomTy));
+}
+
+// Riporta a zoom 1× la tavola eventualmente ingrandita — richiamata ad
+// ogni cambio pagina, così ogni tavola nuova si apre sempre "pulita".
+function resetZoom() {
+  zoomScale = 1; zoomTx = 0; zoomTy = 0;
+  if (zoomedSlide) {
+    const img = zoomedSlide.querySelector(".page-card img");
+    if (img) { img.style.transform = ""; img.style.transition = ""; }
+    zoomedSlide.classList.remove("zoomed");
+  }
+  scrollEl.classList.remove("zoom-active");
+  zoomedSlide = null;
+}
+
+function setZoomTo(scale) {
+  zoomScale = Math.max(1, Math.min(ZOOM_MAX, scale));
+  if (zoomScale <= 1.01) { zoomScale = 1; zoomTx = 0; zoomTy = 0; }
+  clampPan();
+  applyZoom();
+}
 
 scrollEl.addEventListener("pointerdown", (e) => {
-  tapStartX = e.clientX;
-  tapStartY = e.clientY;
-  tapStartTime = Date.now();
-});
-scrollEl.addEventListener("pointerup", (e) => {
-  if (tapStartX === null) return;
-  const dx = Math.abs(e.clientX - tapStartX);
-  const dy = Math.abs(e.clientY - tapStartY);
-  const dt = Date.now() - tapStartTime;
-  tapStartX = null;
-  if (dx < TAP_MOVE_TOLERANCE && dy < TAP_MOVE_TOLERANCE && dt < TAP_MAX_DURATION) {
-    toggleImmersive();
+  activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+  if (activePointers.size === 1) {
+    tapCandidate = { x: e.clientX, y: e.clientY, time: Date.now() };
+    panStartX = e.clientX; panStartY = e.clientY;
+    panOriginTx = zoomTx; panOriginTy = zoomTy;
+    gestureMode = null; // deciso al primo movimento vero (vedi pointermove)
+  } else if (activePointers.size === 2) {
+    if (singleTapTimer) { clearTimeout(singleTapTimer); singleTapTimer = null; }
+    tapCandidate = null;
+    gestureMode = "pinch";
+    const img = currentZoomImg();
+    if (img) img.style.transition = "none";
+    const pts = Array.from(activePointers.values());
+    pinchStartDist = pointerDist(pts[0], pts[1]) || 1;
+    pinchStartScale = zoomScale;
   }
 });
-scrollEl.addEventListener("pointercancel", () => { tapStartX = null; });
+
+scrollEl.addEventListener("pointermove", (e) => {
+  if (!activePointers.has(e.pointerId)) return;
+  activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+  if (gestureMode === "pinch" && activePointers.size >= 2) {
+    const pts = Array.from(activePointers.values());
+    const d = pointerDist(pts[0], pts[1]) || 1;
+    zoomScale = Math.max(1, Math.min(ZOOM_MAX, pinchStartScale * (d / pinchStartDist)));
+    clampPan();
+    applyZoom();
+  } else if (activePointers.size === 1 && zoomScale > 1.01) {
+    const dx = e.clientX - panStartX, dy = e.clientY - panStartY;
+    if (gestureMode !== "pan" && (Math.abs(dx) > TAP_MOVE_TOLERANCE || Math.abs(dy) > TAP_MOVE_TOLERANCE)) {
+      gestureMode = "pan";
+      const img = currentZoomImg();
+      if (img) img.style.transition = "none";
+    }
+    if (gestureMode === "pan") {
+      zoomTx = panOriginTx + dx;
+      zoomTy = panOriginTy + dy;
+      clampPan();
+      applyZoom();
+    }
+  }
+});
+
+function endPointer(e) {
+  activePointers.delete(e.pointerId);
+
+  if (activePointers.size === 0) {
+    if (gestureMode === "pinch" || gestureMode === "pan") {
+      const img = currentZoomImg();
+      if (img) img.style.transition = "";
+      if (gestureMode === "pinch" && zoomScale <= 1.05) resetZoom();
+    }
+
+    // fine di un tap "semplice": un solo dito, niente pinch/trascinamento nel mezzo
+    if (tapCandidate && gestureMode !== "pinch" && gestureMode !== "pan") {
+      const dx = Math.abs(e.clientX - tapCandidate.x);
+      const dy = Math.abs(e.clientY - tapCandidate.y);
+      const dt = Date.now() - tapCandidate.time;
+      if (dx < TAP_MOVE_TOLERANCE && dy < TAP_MOVE_TOLERANCE && dt < TAP_MAX_DURATION) {
+        const now = Date.now();
+        const isDoubleTap = (now - lastTapTime) < DOUBLE_TAP_WINDOW &&
+          Math.abs(e.clientX - lastTapX) < 40 && Math.abs(e.clientY - lastTapY) < 40;
+        if (isDoubleTap) {
+          if (singleTapTimer) { clearTimeout(singleTapTimer); singleTapTimer = null; }
+          lastTapTime = 0; // un eventuale terzo tap non va letto come un altro doppio tap
+          setZoomTo(zoomScale > 1.01 ? 1 : ZOOM_DOUBLE_TAP);
+        } else {
+          lastTapTime = now; lastTapX = e.clientX; lastTapY = e.clientY;
+          // un solo tap: aspetta un momento (potrebbe diventare un doppio
+          // tap prima che scada) prima di attivare/disattivare lo schermo intero
+          singleTapTimer = setTimeout(() => { singleTapTimer = null; toggleImmersive(); }, DOUBLE_TAP_WINDOW - 20);
+        }
+      }
+    }
+    gestureMode = null;
+    tapCandidate = null;
+  } else if (activePointers.size === 1) {
+    // da due dita a una: se stavi facendo un pinch, il dito rimasto
+    // continua come trascinamento, senza salti
+    if (gestureMode === "pinch") {
+      const [remaining] = Array.from(activePointers.values());
+      panStartX = remaining.x; panStartY = remaining.y;
+      panOriginTx = zoomTx; panOriginTy = zoomTy;
+      gestureMode = null; // riparte da capo: pointermove lo trasforma in "pan" se c'è movimento vero
+    }
+    tapCandidate = null; // non è un tap se si arriva da due dita
+  }
+}
+scrollEl.addEventListener("pointerup", endPointer);
+scrollEl.addEventListener("pointercancel", endPointer);
 
 setupVolumeMenu();
 

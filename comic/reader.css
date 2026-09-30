@@ -242,6 +242,11 @@ body {
   touch-action: pan-x;
 }
 .reader-scroll::-webkit-scrollbar { display: none; }
+/* Mentre una tavola è ingrandita (zoom > 1×, vedi reader.js), lo swipe
+   orizzontale per cambiare pagina va sospeso: un dito che trascina deve
+   spostare l'inquadratura dello zoom, non far scorrere alla tavola
+   successiva. */
+.reader-scroll.zoom-active { touch-action: none; }
 
 .page-slide {
   flex: 0 0 100%;
@@ -286,6 +291,10 @@ body {
   user-select: none;
   -webkit-user-drag: none;
   pointer-events: none;
+  /* Zoom con pizzico/doppio tap (vedi reader.js): l'ingrandimento si
+     anima, il trascinamento/pinch in corso disattiva la transizione via
+     JS (altrimenti "insegue" il dito con ritardo). */
+  transition: transform 0.2s ease;
 }
 /* Watermark discreto: dissuade la ricondivisione senza disturbare la
    lettura — piccolo, nero, semi-trasparente. Posizionato a distanza
