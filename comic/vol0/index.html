@@ -2,7 +2,12 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<!-- maximum-scale=1/user-scalable=no: lo zoom "di sistema" del browser
+     (pizzico su tutta la pagina) va disattivato perché la tavola ha un
+     proprio zoom dedicato (vedi reader.js) — altrimenti i due entrano in
+     conflitto e il pizzico ingrandisce l'intera pagina invece della sola
+     tavola, con un effetto confuso su iPhone/Android. -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>MF KILL — Vol. 0</title>
 <meta name="description" content="MF KILL — leggi gratis online il Volume 0 del fumetto. Scorri le tavole, episodio dopo episodio, con colonna sonora dedicata.">
 <link rel="canonical" href="https://mfkill.com/comic/vol0/">
