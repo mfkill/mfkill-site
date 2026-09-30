@@ -411,7 +411,6 @@ function buildGate() {
 }
 
 function showGate() {
-  if (typeof setImmersive === "function") setImmersive(false); // la tendina va vista con l'interfaccia normale attorno
   if (typeof resetZoom === "function") resetZoom();
   if (!gateOverlay) buildGate();
   gateOverlay.classList.add("visible");
@@ -648,37 +647,9 @@ if (shareBtn) {
   });
 }
 
-// ---------- Modalità immersiva: un tap sulla tavola nasconde barra in
-// alto, HUD e frecce, lasciando solo il disegno a schermo intero — lo
-// scroll orizzontale a scatti resta identico. Un altro tap le fa
-// ricomparire. Il tap va distinto da uno swipe/trascinamento: si
-// riconosce solo se il puntatore non si è spostato più di qualche pixel
-// tra down e up, altrimenti ogni scorrimento attiverebbe/disattiverebbe
-// la modalità per sbaglio. Pointer Events copre in un colpo solo touch,
-// mouse e penna (niente logica separata per click vs touch).
-let immersive = false;
-function setImmersive(on) {
-  immersive = on;
-  document.body.classList.toggle("immersive", immersive);
-  // Nascondere/mostrare barra e HUD non cambia le dimensioni della
-  // finestra, ma su mobile può far comparire/sparire la barra degli
-  // indirizzi del browser (l'altezza "visibile" cambia), e con essa la
-  // larghezza calcolata della tavola (100dvh nel CSS) — riallineandosi
-  // subito alla pagina corrente si evita di restare a metà tra una
-  // tavola e l'altra.
-  requestAnimationFrame(() => {
-    const slide = slides[currentPage - 1];
-    if (slide) scrollEl.scrollTo({ left: slide.offsetLeft, behavior: "auto" });
-  });
-}
-function toggleImmersive() { setImmersive(!immersive); }
-
 // ---------- Zoom sulla tavola (pizzico con due dita o doppio tap, come
-// nell'app Foto) + il tap per lo schermo intero qui sopra: un'unica
-// gestione dei puntatori distingue i gesti sulla tavola VISIBILE in quel
-// momento (currentPage):
-// - un dito fermo (tap) -> schermo intero (con un piccolo ritardo, per
-//   lasciare il tempo a un eventuale secondo tap di arrivare)
+// nell'app Foto): una gestione dei puntatori distingue i gesti sulla
+// tavola VISIBILE in quel momento (currentPage):
 // - due tap ravvicinati nello stesso punto -> zoom avanti/indietro
 // - due dita che si allontanano/avvicinano -> zoom continuo (pinch)
 // - un dito che trascina QUANDO la tavola è già ingrandita -> sposta
@@ -697,7 +668,6 @@ let gestureMode = null;  // null | "pinch" | "pan"
 let pinchStartDist = 0, pinchStartScale = 1;
 let panStartX = 0, panStartY = 0, panOriginTx = 0, panOriginTy = 0;
 let tapCandidate = null; // {x, y, time} del pointerdown in corso, per riconoscere un tap
-let singleTapTimer = null;
 let lastTapTime = 0, lastTapX = 0, lastTapY = 0;
 
 function currentZoomImg() {
@@ -762,7 +732,6 @@ scrollEl.addEventListener("pointerdown", (e) => {
     panOriginTx = zoomTx; panOriginTy = zoomTy;
     gestureMode = null; // deciso al primo movimento vero (vedi pointermove)
   } else if (activePointers.size === 2) {
-    if (singleTapTimer) { clearTimeout(singleTapTimer); singleTapTimer = null; }
     tapCandidate = null;
     gestureMode = "pinch";
     const img = currentZoomImg();
@@ -819,14 +788,12 @@ function endPointer(e) {
         const isDoubleTap = (now - lastTapTime) < DOUBLE_TAP_WINDOW &&
           Math.abs(e.clientX - lastTapX) < 40 && Math.abs(e.clientY - lastTapY) < 40;
         if (isDoubleTap) {
-          if (singleTapTimer) { clearTimeout(singleTapTimer); singleTapTimer = null; }
           lastTapTime = 0; // un eventuale terzo tap non va letto come un altro doppio tap
           setZoomTo(zoomScale > 1.01 ? 1 : ZOOM_DOUBLE_TAP);
         } else {
+          // un solo tap: nessuna azione — l'interfaccia resta sempre
+          // visibile, serve solo a riconoscere un eventuale doppio tap
           lastTapTime = now; lastTapX = e.clientX; lastTapY = e.clientY;
-          // un solo tap: aspetta un momento (potrebbe diventare un doppio
-          // tap prima che scada) prima di attivare/disattivare lo schermo intero
-          singleTapTimer = setTimeout(() => { singleTapTimer = null; toggleImmersive(); }, DOUBLE_TAP_WINDOW - 20);
         }
       }
     }
