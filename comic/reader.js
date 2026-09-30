@@ -273,7 +273,25 @@ function scrollToPage(n) {
     n = slides.length;
   }
   n = Math.max(1, Math.min(slides.length, n));
-  scrollEl.scrollTo({ left: slides[n - 1].offsetLeft, behavior: "smooth" });
+  const target = slides[n - 1];
+  scrollEl.scrollTo({ left: target.offsetLeft, behavior: "smooth" });
+
+  // Un salto lungo (es. dal bottone di un episodio lontano) attraversa
+  // molte tavole con scroll-snap: su alcuni browser mobile lo scroll
+  // "smooth" può fermarsi qualche pixel prima/dopo il bersaglio invece di
+  // restare centrato esattamente sulla prima tavola dell'episodio. Alla
+  // fine dello scroll si verifica la posizione e, se serve, si corregge
+  // subito (senza animazione, impercettibile).
+  const verifyLanding = () => {
+    if (Math.abs(scrollEl.scrollLeft - target.offsetLeft) > 1) {
+      scrollEl.scrollTo({ left: target.offsetLeft, behavior: "auto" });
+    }
+  };
+  if ("onscrollend" in window) {
+    scrollEl.addEventListener("scrollend", verifyLanding, { once: true });
+  } else {
+    setTimeout(verifyLanding, 500); // fallback per i browser senza l'evento "scrollend"
+  }
 }
 
 function nextPage() { scrollToPage(currentPage + 1); }
