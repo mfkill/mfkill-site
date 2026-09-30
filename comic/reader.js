@@ -409,6 +409,7 @@ function buildGate() {
 }
 
 function showGate() {
+  if (typeof setImmersive === "function") setImmersive(false); // la tendina va vista con l'interfaccia normale attorno
   if (!gateOverlay) buildGate();
   gateOverlay.classList.add("visible");
   setTimeout(() => gateEmailInput && gateEmailInput.focus(), 300);
@@ -643,6 +644,42 @@ if (shareBtn) {
     }
   });
 }
+
+// ---------- Modalità immersiva: un tap sulla tavola nasconde barra in
+// alto, HUD e frecce, lasciando solo il disegno a schermo intero — lo
+// scroll orizzontale a scatti resta identico. Un altro tap le fa
+// ricomparire. Il tap va distinto da uno swipe/trascinamento: si
+// riconosce solo se il puntatore non si è spostato più di qualche pixel
+// tra down e up, altrimenti ogni scorrimento attiverebbe/disattiverebbe
+// la modalità per sbaglio. Pointer Events copre in un colpo solo touch,
+// mouse e penna (niente logica separata per click vs touch).
+let immersive = false;
+function setImmersive(on) {
+  immersive = on;
+  document.body.classList.toggle("immersive", immersive);
+}
+function toggleImmersive() { setImmersive(!immersive); }
+
+let tapStartX = null, tapStartY = null, tapStartTime = 0;
+const TAP_MOVE_TOLERANCE = 10; // px — oltre, è uno swipe, non un tap
+const TAP_MAX_DURATION = 500;  // ms — oltre, è una pressione prolungata, non un tap
+
+scrollEl.addEventListener("pointerdown", (e) => {
+  tapStartX = e.clientX;
+  tapStartY = e.clientY;
+  tapStartTime = Date.now();
+});
+scrollEl.addEventListener("pointerup", (e) => {
+  if (tapStartX === null) return;
+  const dx = Math.abs(e.clientX - tapStartX);
+  const dy = Math.abs(e.clientY - tapStartY);
+  const dt = Date.now() - tapStartTime;
+  tapStartX = null;
+  if (dx < TAP_MOVE_TOLERANCE && dy < TAP_MOVE_TOLERANCE && dt < TAP_MAX_DURATION) {
+    toggleImmersive();
+  }
+});
+scrollEl.addEventListener("pointercancel", () => { tapStartX = null; });
 
 setupVolumeMenu();
 

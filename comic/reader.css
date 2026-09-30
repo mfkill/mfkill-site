@@ -52,6 +52,7 @@ body {
   padding-top: calc(1.25rem + env(safe-area-inset-top));
   background: linear-gradient(to bottom, rgba(10,10,15,0.95), rgba(10,10,15,0));
   pointer-events: none;
+  transition: opacity 0.25s ease;
 }
 .top-bar * { pointer-events: auto; }
 
@@ -275,6 +276,7 @@ body {
   width: min(720px, 100%, calc((100dvh - 10.25rem) * 1400 / 1980));
   aspect-ratio: 1400 / 1980;
   background: transparent;
+  cursor: zoom-in; /* invita al tap per la modalità a schermo intero, vedi .immersive più sotto */
 }
 .page-card img {
   display: block;
@@ -371,6 +373,7 @@ body {
   font-size: 0.8rem;
   color: var(--text-dim);
   pointer-events: none;
+  transition: opacity 0.25s ease;
 }
 .progress-track {
   width: 140px;
@@ -422,6 +425,26 @@ body {
   transition: opacity 0.15s, border-color 0.15s, color 0.15s;
 }
 .share-btn:hover { border-color: var(--text-dim); }
+
+/* ---------- Modalità immersiva: un tap sulla tavola nasconde barra in
+   alto, contatore/HUD e frecce, lasciando solo il disegno a schermo
+   intero (stesso scroll orizzontale a scatti di sempre); un altro tap
+   le fa ricomparire. Attivata/disattivata da reader.js, che riconosce
+   il tap distinguendolo da uno swipe/trascinamento. */
+body.immersive .top-bar,
+body.immersive .reader-hud,
+body.immersive .arrow-btn {
+  opacity: 0;
+  pointer-events: none;
+}
+body.immersive .page-slide {
+  padding: max(0.5rem, env(safe-area-inset-top)) 0.6rem max(0.5rem, env(safe-area-inset-bottom));
+}
+body.immersive .page-card {
+  width: min(720px, 100%, calc((100vh - 1rem) * 1400 / 1980));
+  width: min(720px, 100%, calc((100dvh - 1rem) * 1400 / 1980));
+  cursor: zoom-out;
+}
 
 /* ---------- Scelta colonna sonora: due tasti (ON/OFF) affiancati, grandi,
    all'altezza del pollice (comodo da toccare tenendo il telefono con una
