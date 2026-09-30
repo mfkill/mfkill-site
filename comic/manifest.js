@@ -26,7 +26,7 @@ const EPISODES = [
   // a un episodio successivo. Un episodio senza "audio" resta silenzioso.
   { id: 1, label: "EP. 1", volume: "vol0", pages: 9, coverPages: 1, audio: "audio/ep1-v2.mp3" },
   { id: 2, label: "EP. 2", volume: "vol0", pages: 7, audio: "audio/ep2-v2.mp3" },
-  { id: 3, label: "EP. 3", volume: "vol0", pages: 18, audio: "audio/ep3-v2.mp3" },
+  { id: 3, label: "EP. 3", volume: "vol0", pages: 17, audio: "audio/ep3-v2.mp3" },
   { id: 4, label: "EP. 4", volume: "vol0", pages: 8, audio: "audio/ep4-v2.mp3" },
   { id: 5, label: "EP. 5", volume: "vol0", pages: 6, audio: "audio/ep5-v2.mp3" },
   { id: 7, label: "EP. 7", volume: "vol1", pages: 1 }, // solo tavola "coming soon", in attesa delle tavole vere
