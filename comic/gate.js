@@ -1,8 +1,13 @@
-// Configurazione della tendina di iscrizione a fine Vol.0 — blocca la
-// lettura oltre quel punto finché non lasci la tua email: è così che
-// saranno accessibili i volumi futuri. Il pulsante Instagram è un'opzione
-// in più (un semplice link), non sblocca nulla da solo — solo l'email lo
-// fa.
+// Configurazione della tendina di iscrizione a fine episodio — la
+// lettura si ferma lì: i prossimi episodi vengono rilasciati man mano, e
+// chi lascia la mail viene avvisato quando ne esce uno nuovo. Il pulsante
+// Instagram è un'opzione in più (un semplice link).
+//
+// COME RILASCIARE UN NUOVO EPISODIO: basta alzare di 1 il numero in
+// "triggerFromEpisodeId" qui sotto (es. 2 → 3: si legge fino alla fine
+// dell'Ep.2, la tendina compare alla fine dell'Ep.2) e ricaricare questo
+// file su GitHub. Le pagine degli episodi successivi non vengono nemmeno
+// caricate nel sito finché non le sblocchi tu.
 //
 // SERVIZIO EMAIL COLLEGATO: Buttondown (account di Mario, username
 // "mfkill" — verificato in Settings → Basics → Username su
@@ -23,17 +28,25 @@
 // (tutto libero, comodo in fase di test).
 
 const GATE_CONFIG = {
-  // Id dell'episodio (numerazione continua di manifest.js) a partire dal
-  // quale serve iscriversi. 7 = si legge gratis tutto il Vol.0, poi serve
-  // la mail per continuare nell'Episodio 7 (primo del Vol.1).
-  triggerFromEpisodeId: 7,
+  // Id del primo episodio NON ancora rilasciato (numerazione continua di
+  // manifest.js): si legge liberamente fino alla fine dell'episodio
+  // precedente, dove compare la tendina. 2 = per ora solo l'Ep.1.
+  triggerFromEpisodeId: 2,
+
+  // false = l'email NON sblocca nulla: serve solo per avvisare quando esce
+  // il prossimo episodio (rilascio graduale, vedi sopra). true = vecchio
+  // comportamento, l'iscrizione sblocca subito tutto il resto.
+  unlockOnSubscribe: false,
 
   formAction: "https://buttondown.com/api/emails/embed-subscribe/mfkill",
 
-  title: "Hai finito il Vol. 0",
-  body: "Sblocca subito il resto del fumetto con la tua email. Riceverai una mail ogni volta che uscirà un nuovo episodio di MF KILL.",
+  eyebrow: "Episodio 1 completato",
+  title: "Hai finito l'episodio 1",
+  body: "I prossimi episodi escono man mano. Lascia la tua email e ti avviseremo appena uscirà il prossimo.",
   placeholder: "la-tua-email@esempio.it",
-  buttonLabel: "Continua a leggere",
+  buttonLabel: "Avvisami",
+  successText: "Fatto — ti avviseremo.",
+  alreadyText: "Sei già iscritto — ti avviseremo appena esce il prossimo episodio.",
   disclaimer: "Niente spam. Puoi disiscriverti quando vuoi.",
 
   // Secondario rispetto all'email (che è già il CTA principale) — solo

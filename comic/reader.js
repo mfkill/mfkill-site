@@ -61,6 +61,16 @@ const UNLOCK_KEY = "mfkill_unlocked";
 function isUnlocked() {
   try { return localStorage.getItem(UNLOCK_KEY) === "1"; } catch (e) { return false; }
 }
+// Iscritto = ha lasciato la mail (modalità "avvisami"): non sblocca nulla,
+// serve solo a non ripresentargli il modulo e a non far comparire la
+// tendina da sola ogni volta.
+const SUBSCRIBED_KEY = "mfkill_subscribed";
+function isSubscribed() {
+  try { return localStorage.getItem(SUBSCRIBED_KEY) === "1"; } catch (e) { return false; }
+}
+function setSubscribed() {
+  try { localStorage.setItem(SUBSCRIBED_KEY, "1"); } catch (e) { /* va bene lo stesso */ }
+}
 function setUnlocked() {
   try { localStorage.setItem(UNLOCK_KEY, "1"); } catch (e) { /* localStorage non disponibile, va bene lo stesso */ }
 }
@@ -71,7 +81,10 @@ const gateEpisode = (typeof GATE_CONFIG !== "undefined")
 
 // il gate è attivo solo se: è configurato un episodio soglia, esiste un
 // formAction reale (non vuoto) e l'utente non ha già sbloccato prima
-let gateActive = !!(gateEpisode && GATE_CONFIG.formAction && !isUnlocked());
+// In modalità "avvisami" (unlockOnSubscribe: false) un vecchio sblocco non
+// conta: i nuovi episodi si aprono solo alzando triggerFromEpisodeId.
+const gateUnlocksOnSubscribe = (typeof GATE_CONFIG !== "undefined") && GATE_CONFIG.unlockOnSubscribe !== false;
+let gateActive = !!(gateEpisode && GATE_CONFIG.formAction && !(gateUnlocksOnSubscribe && isUnlocked()));
 const maxFreePage = gateEpisode ? gateEpisode.startPage - 1 : TOTAL_PAGES;
 
 // ---------- Costruzione della striscia di pagine ----------
@@ -261,7 +274,7 @@ function updateHud(page) {
   // andare oltre nel frattempo, con le frecce/episodi/swipe, la richiama
   // comunque subito, finché non ti iscrivi — vedi scrollToPage e i
   // listener più sotto
-  if (gateActive && page === maxFreePage && !gateAutoShown) {
+  if (gateActive && page === maxFreePage && !gateAutoShown && !isSubscribed()) {
     gateAutoShown = true;
     setTimeout(showGate, 5000);
   }
@@ -376,7 +389,7 @@ function buildGate() {
   wrap.innerHTML =
     '<div class="gate-card">' +
       '<button class="gate-close" id="gate-close" aria-label="Chiudi">✕</button>' +
-      (gateEpisode ? '<div class="gate-eyebrow">Vol. 0 completato</div>' : '') +
+      (GATE_CONFIG.eyebrow ? '<div class="gate-eyebrow">' + GATE_CONFIG.eyebrow + '</div>' : '') +
       '<h2 class="gate-title" id="gate-title">' + GATE_CONFIG.title + '</h2>' +
       '<p class="gate-body">' + GATE_CONFIG.body + '</p>' +
       '<form class="gate-form" id="gate-form" target="_blank" rel="noopener">' +
@@ -385,7 +398,7 @@ function buildGate() {
         '<input type="hidden" name="embed" value="1">' +
         '<button type="submit">' + GATE_CONFIG.buttonLabel + '</button>' +
       '</form>' +
-      '<p class="gate-success" id="gate-success">Fatto — ti avviseremo.</p>' +
+      '<p class="gate-success" id="gate-success">' + (GATE_CONFIG.successText || "Fatto — ti avviseremo.") + '</p>' +
       (GATE_CONFIG.instagramUrl ?
         '<a class="gate-instagram" href="' + GATE_CONFIG.instagramUrl + '" target="_blank" rel="noopener">' +
           '<svg class="gate-instagram-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
@@ -418,21 +431,29 @@ function buildGate() {
     // L'invio vero e proprio va a Buttondown in una scheda a parte
     // (target="_blank": Buttondown lo richiede esplicitamente — un invio
     // "nascosto" via iframe può fallire in silenzio se serve un CAPTCHA o
-    // la mail non è valida). Sul sito, intanto, si sblocca subito senza
-    // aspettare risposta: il pulsante Instagram qui sopra resta invece un
-    // semplice link, non sblocca nulla — solo l'iscrizione lo fa.
-    unlockReading();
+    // la mail non è valida). Sul sito si risponde subito, senza aspettare.
+    if (gateUnlocksOnSubscribe) {
+      unlockReading(); // vecchio comportamento: l'iscrizione apre tutto il resto
+    } else {
+      setSubscribed(); // modalità "avvisami": nessuno sblocco, solo ringraziamento
+    }
     gateForm.style.display = "none";
     gateSuccessEl.classList.add("visible");
-    setTimeout(hideGate, 900);
+    setTimeout(hideGate, gateUnlocksOnSubscribe ? 900 : 1800);
   });
 }
 
 function showGate() {
   if (typeof resetZoom === "function") resetZoom();
   if (!gateOverlay) buildGate();
+  // già iscritto (modalità "avvisami"): niente modulo, solo il messaggio
+  if (!gateUnlocksOnSubscribe && isSubscribed()) {
+    gateForm.style.display = "none";
+    gateSuccessEl.textContent = GATE_CONFIG.alreadyText || GATE_CONFIG.successText;
+    gateSuccessEl.classList.add("visible");
+  }
   gateOverlay.classList.add("visible");
-  setTimeout(() => gateEmailInput && gateEmailInput.focus(), 300);
+  setTimeout(() => { if (gateEmailInput && gateForm.style.display !== "none") gateEmailInput.focus(); }, 300);
 }
 
 function hideGate() {
