@@ -650,3 +650,71 @@ body {
   display: none;
 }
 .gate-success.visible { display: block; }
+
+/* ---------- Codice segreto (vedi reader.js → showSecret) ---------- */
+.secret-overlay {
+  position: fixed; inset: 0; z-index: 320;
+  display: flex; align-items: center; justify-content: center;
+  padding: 1.5rem;
+  background: rgba(10, 10, 15, 0.9);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.secret-overlay.visible { opacity: 1; pointer-events: auto; }
+.secret-card {
+  position: relative;
+  width: min(86vw, 21rem);
+  aspect-ratio: 1 / 1;
+  background: var(--void-soft);
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--yellow);
+  display: flex; align-items: center; justify-content: center;
+}
+.secret-close {
+  position: absolute; top: 0.4rem; right: 0.4rem;
+  width: 2rem; height: 2rem; border: none; background: transparent;
+  color: var(--text-dim); font-size: 0.9rem; cursor: pointer;
+}
+.secret-main {
+  width: 100%; height: 100%;
+  padding: 1.1rem 1.6rem 1.2rem;
+  display: flex; flex-direction: column; align-items: center; gap: 0.7rem;
+}
+.secret-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.66rem; letter-spacing: 0.14em; color: var(--yellow);
+}
+.secret-dots { display: flex; gap: 0.9rem; height: 1.4rem; align-items: center; }
+.secret-dots i {
+  width: 0.85rem; height: 0.85rem; border-radius: 50%;
+  border: 1.5px solid var(--text-dim); transition: background 0.1s, border-color 0.1s;
+}
+.secret-dots i.filled { background: var(--yellow); border-color: var(--yellow); }
+.secret-keys {
+  flex: 1; width: 100%;
+  display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(4, 1fr);
+  gap: 0.45rem;
+}
+.secret-key {
+  font-family: 'IBM Plex Mono', monospace; font-size: 1.15rem;
+  background: var(--void); color: var(--text);
+  border: 1px solid var(--line); cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.secret-key:active { background: var(--line); }
+.secret-done {
+  position: absolute; inset: 0; display: none;
+  align-items: center; justify-content: center; text-align: center; padding: 1.5rem;
+  font-family: 'Big Shoulders Display', sans-serif; font-weight: 800;
+  font-size: 1.7rem; line-height: 1.1; color: var(--yellow);
+}
+.secret-overlay.success .secret-main { visibility: hidden; }
+.secret-overlay.success .secret-close { display: none; }
+.secret-overlay.success .secret-done { display: flex; }
+.secret-overlay.wrong .secret-card { animation: secret-shake 0.5s; border-top-color: var(--signal); }
+@keyframes secret-shake {
+  0%,100% { transform: translateX(0); } 20% { transform: translateX(-10px); }
+  40% { transform: translateX(9px); } 60% { transform: translateX(-6px); } 80% { transform: translateX(4px); }
+}

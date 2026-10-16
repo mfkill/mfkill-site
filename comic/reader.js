@@ -71,6 +71,15 @@ function isSubscribed() {
 function setSubscribed() {
   try { localStorage.setItem(SUBSCRIBED_KEY, "1"); } catch (e) { /* va bene lo stesso */ }
 }
+// Sblocco totale con il codice segreto (vedi gate.js → secretCode): è
+// un'altra cosa dall'iscrizione, apre davvero tutto il fumetto.
+const VIP_KEY = "mfkill_vip";
+function isVip() {
+  try { return localStorage.getItem(VIP_KEY) === "1"; } catch (e) { return false; }
+}
+function setVip() {
+  try { localStorage.setItem(VIP_KEY, "1"); } catch (e) { /* va bene lo stesso */ }
+}
 function setUnlocked() {
   try { localStorage.setItem(UNLOCK_KEY, "1"); } catch (e) { /* localStorage non disponibile, va bene lo stesso */ }
 }
@@ -84,7 +93,7 @@ const gateEpisode = (typeof GATE_CONFIG !== "undefined")
 // In modalità "avvisami" (unlockOnSubscribe: false) un vecchio sblocco non
 // conta: i nuovi episodi si aprono solo alzando triggerFromEpisodeId.
 const gateUnlocksOnSubscribe = (typeof GATE_CONFIG !== "undefined") && GATE_CONFIG.unlockOnSubscribe !== false;
-let gateActive = !!(gateEpisode && GATE_CONFIG.formAction && !(gateUnlocksOnSubscribe && isUnlocked()));
+let gateActive = !!(gateEpisode && GATE_CONFIG.formAction && !(gateUnlocksOnSubscribe && isUnlocked()) && !isVip());
 const maxFreePage = gateEpisode ? gateEpisode.startPage - 1 : TOTAL_PAGES;
 
 // ---------- Costruzione della striscia di pagine ----------
@@ -222,6 +231,7 @@ function updateEpisodeHighlight(volId, page) {
 // ---------- Stato lettore ----------
 let currentPage = 1;
 let gateAutoShown = false;
+let lastPageChangeTime = 0; // per non scambiare l'arrivo sulla copertina per un tentativo di andare oltre
 
 // Pre-carica un paio di pagine "avanti" (e una indietro) rispetto a quella
 // su cui ti trovi: normalmente il browser aspetta che una pagina lazy sia
@@ -321,25 +331,37 @@ document.getElementById("btn-prev").addEventListener("click", prevPage);
 // sinistra), si apre subito, ogni volta. Uno swipe all'indietro (per
 // rileggere) non la richiama. ----------
 let touchStartX = null;
+let touchStartPage = null;
 scrollEl.addEventListener("touchstart", (e) => {
   touchStartX = e.touches[0].clientX;
+  touchStartPage = currentPage;
 }, { passive: true });
 scrollEl.addEventListener("touchend", (e) => {
-  if (!gateActive || currentPage !== maxFreePage || touchStartX === null) return;
+  if (touchStartX === null) return;
   const endX = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0].clientX : touchStartX;
-  const swipedForward = (touchStartX - endX) > 30; // soglia minima, evita falsi positivi su un tap
+  const delta = touchStartX - endX; // > 0 = swipe in avanti, < 0 = swipe all'indietro
+  const startedOnPage = touchStartPage;
   touchStartX = null;
-  if (swipedForward) showGate();
+  // soglia minima di 30px: evita falsi positivi su un tap
+  if (gateActive && currentPage === maxFreePage && delta > 30) showGate();
+  // codice segreto: swipe all'indietro che PARTE già dalla copertina (non
+  // quello che ci arriva da una pagina successiva)
+  if (startedOnPage === 1 && currentPage === 1 && delta < -30) showSecret();
 }, { passive: true });
 
 // stesso concetto per trackpad/rotellina del mouse su desktop
 scrollEl.addEventListener("wheel", (e) => {
   if (gateActive && currentPage === maxFreePage && e.deltaX > 15) showGate();
+  if (currentPage === 1 && e.deltaX < -15 && Date.now() - lastPageChangeTime > 800) showSecret();
 }, { passive: true });
 
 document.addEventListener("keydown", (e) => {
+  if (secretOverlay && secretOverlay.classList.contains("visible")) return; // la tastiera serve al codice
   if (e.key === "ArrowRight") nextPage();
-  if (e.key === "ArrowLeft") prevPage();
+  if (e.key === "ArrowLeft") {
+    if (currentPage === 1 && Date.now() - lastPageChangeTime > 800) showSecret();
+    else prevPage();
+  }
   if (e.key === "Escape" && gateOverlay && gateOverlay.classList.contains("visible")) hideGate();
 });
 
@@ -364,6 +386,7 @@ const observer = new IntersectionObserver((entries) => {
     const page = parseInt(best.target.dataset.page, 10);
     if (page !== currentPage) {
       currentPage = page;
+      lastPageChangeTime = Date.now();
       updateHud(currentPage);
     }
   }
@@ -458,6 +481,102 @@ function showGate() {
 
 function hideGate() {
   if (gateOverlay) gateOverlay.classList.remove("visible");
+}
+
+// ---------- Codice segreto: sulla copertina, scorrendo "all'indietro"
+// oltre l'inizio (gesto controintuitivo, va fatto apposta), compare un
+// riquadro quadrato con un tastierino per un codice a 4 cifre. Il codice
+// giusto (gate.js → secretCode) sblocca tutto il fumetto, salta il gate
+// e resta ricordato su questo dispositivo. Tastierino a schermo (non la
+// tastiera del telefono) per non far ridimensionare la pagina. ----------
+let secretOverlay = null, secretDigits = "", secretLocked = false;
+
+function buildSecret() {
+  const wrap = document.createElement("div");
+  wrap.className = "secret-overlay";
+  wrap.setAttribute("role", "dialog");
+  wrap.setAttribute("aria-modal", "true");
+  wrap.setAttribute("aria-label", "Codice segreto");
+  let keys = "";
+  ["1","2","3","4","5","6","7","8","9","","0","⌫"].forEach(k => {
+    keys += k === "" ? '<span></span>'
+      : '<button type="button" class="secret-key" data-key="' + k + '">' + k + '</button>';
+  });
+  wrap.innerHTML =
+    '<div class="secret-card">' +
+      '<button class="secret-close" aria-label="Chiudi">✕</button>' +
+      '<div class="secret-main">' +
+        '<div class="secret-label">CODICE</div>' +
+        '<div class="secret-dots"><i></i><i></i><i></i><i></i></div>' +
+        '<div class="secret-keys">' + keys + '</div>' +
+      '</div>' +
+      '<div class="secret-done"><span>' + (GATE_CONFIG.secretSuccess || "Sbloccato") + '</span></div>' +
+    '</div>';
+  document.body.appendChild(wrap);
+  secretOverlay = wrap;
+  wrap.querySelector(".secret-close").addEventListener("click", hideSecret);
+  wrap.addEventListener("click", (e) => { if (e.target === wrap) hideSecret(); });
+  wrap.querySelectorAll(".secret-key").forEach(btn =>
+    btn.addEventListener("click", () => secretKey(btn.dataset.key)));
+}
+
+function renderSecretDots() {
+  secretOverlay.querySelectorAll(".secret-dots i").forEach((d, i) =>
+    d.classList.toggle("filled", i < secretDigits.length));
+}
+
+function secretKey(k) {
+  if (secretLocked) return;
+  if (k === "⌫") secretDigits = secretDigits.slice(0, -1);
+  else if (/^\d$/.test(k) && secretDigits.length < 4) secretDigits += k;
+  renderSecretDots();
+  if (secretDigits.length === 4) {
+    if (secretDigits === String(GATE_CONFIG.secretCode)) {
+      secretLocked = true;
+      secretOverlay.classList.add("success");
+      setVip();
+      unlockEverything();
+      setTimeout(() => {
+        hideSecret();
+        scrollToPage(typeof ENTRY_PAGE !== "undefined" ? ENTRY_PAGE : 2);
+      }, 2400);
+    } else {
+      secretLocked = true;
+      secretOverlay.classList.add("wrong");
+      setTimeout(() => {
+        secretOverlay.classList.remove("wrong");
+        secretDigits = ""; renderSecretDots(); secretLocked = false;
+      }, 550);
+    }
+  }
+}
+
+function showSecret() {
+  if (isVip() || typeof GATE_CONFIG === "undefined" || !GATE_CONFIG.secretCode) return;
+  if (!secretOverlay) buildSecret();
+  if (secretOverlay.classList.contains("visible")) return;
+  secretDigits = ""; secretLocked = false;
+  secretOverlay.classList.remove("success", "wrong");
+  renderSecretDots();
+  secretOverlay.classList.add("visible");
+}
+function hideSecret() {
+  if (secretOverlay) secretOverlay.classList.remove("visible");
+}
+
+// tastiera fisica (desktop): cifre, Backspace, Esc
+document.addEventListener("keydown", (e) => {
+  if (!secretOverlay || !secretOverlay.classList.contains("visible")) return;
+  if (e.key === "Escape") hideSecret();
+  else if (e.key === "Backspace") secretKey("⌫");
+  else if (/^\d$/.test(e.key)) secretKey(e.key);
+});
+
+// apre tutte le pagine rimaste (senza spostare lo scroll) e disattiva il gate
+function unlockEverything() {
+  gateActive = false;
+  hideGate();
+  for (let g = slides.length + 1; g <= TOTAL_PAGES; g++) appendSlide(PAGE_INDEX[g - 1]);
 }
 
 function unlockReading() {

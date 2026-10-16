@@ -38,6 +38,14 @@ const GATE_CONFIG = {
   // comportamento, l'iscrizione sblocca subito tutto il resto.
   unlockOnSubscribe: false,
 
+  // Codice segreto per sbloccare subito tutto il fumetto (per chi vuoi far
+  // leggere in anticipo): sulla copertina (prima tavola) si scorre
+  // "all'indietro", oltre l'inizio, e compare un riquadro per inserire il
+  // codice a 4 cifre. Il codice è nel sito (non è una vera sicurezza, ma
+  // basta per far entrare solo chi lo conosce). Per cambiarlo: modifica qui.
+  secretCode: "1995",
+  secretSuccess: "Complimenti, hai sbloccato tutto il fumetto",
+
   formAction: "https://buttondown.com/api/emails/embed-subscribe/mfkill",
 
   eyebrow: "Episodio 1 completato",
