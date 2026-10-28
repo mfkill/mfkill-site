@@ -51,7 +51,7 @@
 </style>
 </head>
 <body>
-<main id="gate">
+<main id="gate" style="display:none">
   <div class="card" id="card">
     <h1 id="g-title">RAPANOIA</h1>
     <p class="sub" id="g-sub"></p>
@@ -84,11 +84,12 @@
     return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join("");
   }
   const NOPW = !C.hash;
-  if (NOPW) { $("pw").style.display = "none"; $("pw").required = false; $("form").querySelector("button").textContent = "Leggi"; }
+  // senza password (hash vuoto) si va dritti alla copertina; con password compare il riquadro di accesso
+  if (!NOPW) $("gate").style.display = "flex";
   const KEY = "rap_ok_" + (C.hash || "open").slice(0, 12);
   let built = false;
   let ok = false; try { ok = sessionStorage.getItem(KEY) === "1"; } catch (e) {}
-  if (ok && !NOPW) open();
+  if (ok || NOPW) open();
 
   $("form").addEventListener("submit", async e => {
     e.preventDefault();
