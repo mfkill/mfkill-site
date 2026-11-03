@@ -30,8 +30,9 @@
 const GATE_CONFIG = {
   // Id del primo episodio NON ancora rilasciato (numerazione continua di
   // manifest.js): si legge liberamente fino alla fine dell'episodio
-  // precedente, dove compare la tendina. 2 = per ora solo l'Ep.1.
-  triggerFromEpisodeId: 2,
+  // precedente, dove compare la tendina. 3 = si leggono Ep.1 ed Ep.2, la
+  // tendina compare alla fine dell'Ep.2.
+  triggerFromEpisodeId: 3,
 
   // false = l'email NON sblocca nulla: serve solo per avvisare quando esce
   // il prossimo episodio (rilascio graduale, vedi sopra). true = vecchio
@@ -48,8 +49,8 @@ const GATE_CONFIG = {
 
   formAction: "https://buttondown.com/api/emails/embed-subscribe/mfkill",
 
-  eyebrow: "Episodio 1 completato",
-  title: "Hai finito l'episodio 1",
+  eyebrow: "Episodio 2 completato",
+  title: "Hai finito l'episodio 2",
   body: "I prossimi episodi escono man mano. Lascia la tua email e ti avviseremo appena uscirà il prossimo.",
   placeholder: "la-tua-email@esempio.it",
   buttonLabel: "Avvisami",
