@@ -4,7 +4,7 @@ window.RAPANOIA = {
   subtitle: "Un videogioco per guarire",
   author: "Mario Frezza",
   email: "",                 // es. "mario@..." — compare nell'ultima schermata (vuoto = non mostrata)
-  pages: 119,                 // numero di tavole in rapanoia/pagine/001.webp, 002.webp, ...
+  pages: 342,                 // numero di tavole in rapanoia/pagine/001.webp, 002.webp, ...
   ext: "webp",
   endTitle: "Grazie per aver letto",
   endText: "Se vuoi leggere il resto del libro o parlarne, scrivimi.",
